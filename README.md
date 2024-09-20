@@ -10,15 +10,12 @@ How We Cleaned the Data
 1. Creating a Backup (Staging Table)
 First, we create a copy of the original data. This allows us to make changes while keeping the raw data intact. We call this copy the staging table.
 
-sql
-Copy code
+
 CREATE TABLE world_layoffs.layoffs_staging LIKE world_layoffs.layoffs;
 INSERT INTO world_layoffs.layoffs_staging SELECT * FROM world_layoffs.layoffs;
 2. Removing Duplicate Entries
 Data can sometimes have duplicates, so we used a method to identify and remove them. By applying a ROW_NUMBER() function, we made sure that only one unique record for each company and layoff event remains.
 
-sql
-Copy code
 WITH duplicate_rows AS (
     SELECT company, location, industry, total_laid_off, percentage_laid_off, `date`, stage, country, funds_raised_millions,
            ROW_NUMBER() OVER (PARTITION BY company, location, industry, total_laid_off, percentage_laid_off, `date`, stage, country, funds_raised_millions ORDER BY company) AS row_num
@@ -26,6 +23,7 @@ WITH duplicate_rows AS (
 )
 DELETE FROM world_layoffs.layoffs_staging
 WHERE row_num > 1;
+
 3. Standardizing the Data
 Consistency is key when it comes to analyzing data. Here's how we cleaned up the data:
 
@@ -37,8 +35,6 @@ Cleaning the country field: We removed any trailing periods from country names.
 
 Fixing dates: The date column was converted into a proper date format for easier filtering and sorting.
 
-sql
-Copy code
 -- Standardize 'Crypto' industry variations
 UPDATE world_layoffs.layoffs_staging SET industry = 'Crypto' WHERE industry IN ('Crypto Currency', 'CryptoCurrency');
 
@@ -51,14 +47,10 @@ ALTER TABLE world_layoffs.layoffs_staging MODIFY COLUMN `date` DATE;
 4. Handling Unnecessary Null Values
 We removed records that didn’t contain meaningful information, such as rows where both total_laid_off and percentage_laid_off were missing.
 
-sql
-Copy code
 DELETE FROM world_layoffs.layoffs_staging WHERE total_laid_off IS NULL AND percentage_laid_off IS NULL;
 5. Final Cleanup
 To tidy up, we made sure to drop any temporary columns we used during the cleaning process, leaving the dataset lean and clean.
 
-sql
-Copy code
 ALTER TABLE world_layoffs.layoffs_staging DROP COLUMN IF EXISTS row_num;
 Why This Matters
 Cleaning and organizing the data ensures that it is accurate, reliable, and easy to analyze. This clean version of the dataset can now be used for further exploration, insights, and even visualizations, without the risk of errors caused by messy data.
